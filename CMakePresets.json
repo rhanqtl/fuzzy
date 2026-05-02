@@ -1,39 +1,74 @@
 {
     "version": 3,
-    "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 18,
-        "patch": 0
-    },
     "configurePresets": [
         {
-            "name": "default",
-            "hidden": false,
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build",
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "installDir": "${sourceDir}/install",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install",
-                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
-                "FUZZY_INCLUDE_TESTS": "OFF",
-                "FUZZY_INCLUDE_EXAMPLES": "ON"
+                "LLVM_DIR": "/home/rhanqtl/projects/circt/llvm/build/lib/cmake/llvm",
+                "MLIR_DIR": "/home/rhanqtl/projects/circt/llvm/build/lib/cmake/mlir",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "base-clang",
+            "hidden": true,
+            "inherits": [
+                "base"
+            ]
+        },
+        {
+            "name": "linux-amd64-debug",
+            "binaryDir": "${sourceDir}/build/Debug",
+            "inherits": [
+                "base-clang"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "linux-amd64-release",
+            "binaryDir": "${sourceDir}/build/Release",
+            "inherits": [
+                "base-clang"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "default",
-            "hidden": false,
-            "configurePreset": "default",
-            "jobs": 8
+            "name": "linux-amd64-debug",
+            "configurePreset": "linux-amd64-debug",
+            "jobs": 10,
+            "targets": [
+                "install"
+            ]
+        },
+        {
+            "name": "linux-amd64-release",
+            "configurePreset": "linux-amd64-release",
+            "jobs": 10,
+            "targets": [
+                "install"
+            ]
         }
     ],
     "testPresets": [
         {
-            "name": "default",
-            "hidden": false,
-            "configurePreset": "default"
+            "name": "linux-amd64-debug",
+            "configurePreset": "linux-amd64-debug"
+        },
+        {
+            "name": "linux-amd64-release",
+            "configurePreset": "linux-amd64-release"
         }
     ]
 }

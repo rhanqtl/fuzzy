@@ -12,6 +12,7 @@
 #include "fuzzy/ConstraintCollector.h"
 #include "fuzzy/Model.h"
 #include "fuzzy/ast/Expr.h"
+#include "fuzzy/ast/Func.h"
 #include "fuzzy/ast/RandArray.h"
 #include "fuzzy/ast/RandVar.h"
 
@@ -55,6 +56,10 @@
     [[maybe_unused]] auto implies = [&](::fuzzy::Expr& c, ::fuzzy::Expr& b) -> ::fuzzy::Expr& { \
       return __cc.make_implies(c, b);                                                           \
     };                                                                                          \
+    [[maybe_unused]] auto invoke = [&](auto& self, const auto& fn, auto&&... args)            \
+        -> ::fuzzy::Expr& {                                                                     \
+      return ::fuzzy::dsl::invoke(self, fn, std::forward<decltype(args)>(args)...);            \
+    };                                                                                          \
     [[maybe_unused]] auto& abs = ::fuzzy::abs;
 
 #define BLOCK(name)        \
@@ -64,5 +69,9 @@
 #define FUZZY_END  \
   __cc.finalize(); \
   }
+
+#define FUZZY_DECLARE_FUNC(fn) ::fuzzy::dsl::declare_func(fn)
+
+#define FUZZY_CALL(obj, fn, ...) ::fuzzy::dsl::invoke((obj), (fn)__VA_OPT__(, ) __VA_ARGS__)
 
 #endif  // FUZZY_FUZZY_H

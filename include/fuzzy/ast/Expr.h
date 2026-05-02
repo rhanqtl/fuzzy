@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,6 +37,7 @@ enum class ExprKind {
 
   // Constraint-specific
   Implies,
+  Call,
 
   // Array-related
   ArraySize,
@@ -143,6 +145,35 @@ class ImpliesExpr : public Expr {
  private:
   Expr* cond_;
   Expr* body_;
+};
+
+// ---------- CallExpr ----------
+
+class CallExpr : public Expr {
+ public:
+  using EvalFn = std::function<int64_t(const std::vector<int64_t>&)>;
+
+  CallExpr(std::vector<Expr*> args, EvalFn eval_fn) :
+      Expr{ExprKind::Call},
+      args_{std::move(args)},
+      eval_fn_{std::move(eval_fn)} {
+    assert(eval_fn_);
+    for (auto* arg : args_) {
+      assert(arg);
+    }
+  }
+
+  const std::vector<Expr*>& args() const {
+    return args_;
+  }
+
+  int64_t invoke(const std::vector<int64_t>& concrete_args) const {
+    return eval_fn_(concrete_args);
+  }
+
+ private:
+  std::vector<Expr*> args_;
+  EvalFn eval_fn_;
 };
 
 // ---------- Array-related forward declarations ----------
@@ -253,6 +284,7 @@ Arena* get_arena();
 Expr& make_binary(ExprKind kind, Expr& lhs, Expr& rhs);
 Expr& make_unary(ExprKind kind, Expr& operand);
 Expr& make_const(int64_t value);
+Expr& make_call(std::vector<Expr*> args, CallExpr::EvalFn eval_fn);
 }  // namespace detail
 
 // Expr & Expr

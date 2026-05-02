@@ -1,7 +1,16 @@
+.cache
 build*
 cmake-build-*
 compile_commands.json
-
-.cache
+install
+Testing
 
 .vscode
+
+.qoder
+
+.claude
+
+.azad
+
+.z3-trace

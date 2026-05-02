@@ -5,9 +5,13 @@
 int main() {
   auto result = fuzzy::randomize<NQueens>();
   if (result) {
-    std::cout << *result << std::endl;
+    if (!fuzzy::validate(*result)) {
+      std::cout << "ERROR: invalid solution\n";
+    } else {
+      std::cout << *result << std::endl;
+    }
   } else {
-    std::cerr << "Randomization failed\n";
+    std::cout << "ERROR: randomization failed\n";
     return 1;
   }
 }

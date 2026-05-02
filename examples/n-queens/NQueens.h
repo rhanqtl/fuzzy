@@ -32,7 +32,6 @@ struct NQueens {
   FUZZY_END
 
   friend std::ostream& operator<<(std::ostream& os, const NQueens& q) {
-    os << "n = " << q.n << "\n";
     for (int i = 0; i < q.n; i++) {
       std::string line(q.n, '.');
       line[q.board[i]] = 'Q';

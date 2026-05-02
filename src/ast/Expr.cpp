@@ -41,6 +41,10 @@ Expr& make_const(int64_t value) {
   return arena_alloc<ConstExpr>(value);
 }
 
+Expr& make_call(std::vector<Expr*> args, CallExpr::EvalFn eval_fn) {
+  return arena_alloc<CallExpr>(std::move(args), std::move(eval_fn));
+}
+
 }  // namespace detail
 
 // ---------- Expr & Expr operators ----------

@@ -46,6 +46,9 @@ class ArrayExprBase : public Expr {
 
   // Get the size variable (type-erased)
   virtual VarExprBase& size_var_base() = 0;
+
+  // Get the actual underlying vector size (not from size_var, but from the real container)
+  virtual std::size_t actual_size() const = 0;
 };
 
 // Concrete typed array expression
@@ -104,6 +107,10 @@ class ArrayExpr : public ArrayExprBase {
 
   VarExprBase& size_var_base() override {
     return size_var_;
+  }
+
+  std::size_t actual_size() const override {
+    return out_.size();
   }
 
   VarExpr<std::size_t>& size_var() {

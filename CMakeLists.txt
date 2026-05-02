@@ -15,7 +15,7 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/install" CACHE PATH "" FORCE)
 endif()
 
-option(FUZZY_INCLUDE_TESTS "whether or not to build tests" OFF)
+option(FUZZY_INCLUDE_TESTS "whether or not to build tests" ON)
 option(FUZZY_INCLUDE_EXAMPLES "whether or not to build examples" ON)
 
 # include_guard(GLOBAL)
@@ -31,7 +31,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_subdirectory(src)
 if(FUZZY_INCLUDE_TESTS)
-    add_subdirectory(tests)
+    add_subdirectory(test)
 endif()
 if(FUZZY_INCLUDE_EXAMPLES)
     add_subdirectory(examples)

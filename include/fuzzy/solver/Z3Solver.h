@@ -17,8 +17,13 @@ namespace fuzzy {
 
 class Z3Solver {
  public:
-  Z3Solver() :
-      solver_{ctx_} {}
+  explicit Z3Solver(unsigned seed = 0) :
+      solver_{ctx_} {
+    z3::params p(ctx_);
+    p.set("random_seed", seed);
+    // p.set("phase", "random");
+    solver_.set(p);
+  }
 
   // Recursively translate a fuzzy Expr to z3::expr
   z3::expr translate(Expr& e) {
@@ -87,6 +92,10 @@ class Z3Solver {
         // Translate to the size variable
         auto& as = static_cast<ArraySizeExpr&>(e);
         return get_or_create_var(as.array()->size_var_base());
+      }
+      case ExprKind::Call: {
+        assert(false && "CallExpr must be reduced to ConstExpr before Z3 translation");
+        return ctx_.int_val(0);
       }
       default:
         assert(false &&
