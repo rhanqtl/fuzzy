@@ -1,0 +1,39 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 18,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": false,
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/install",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+                "FUZZY_INCLUDE_TESTS": "OFF",
+                "FUZZY_INCLUDE_EXAMPLES": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "hidden": false,
+            "configurePreset": "default",
+            "jobs": 8
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "hidden": false,
+            "configurePreset": "default"
+        }
+    ]
+}
