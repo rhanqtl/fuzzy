@@ -19,6 +19,9 @@ enum class ExprKind {
   // Arithmetic (binary)
   Add,
   Sub,
+  Mul,
+  Div,
+  Mod,
   // Arithmetic (unary)
   Abs,
 
@@ -37,6 +40,7 @@ enum class ExprKind {
 
   // Constraint-specific
   Implies,
+  Ite,
   Call,
 
   // Array-related
@@ -45,7 +49,11 @@ enum class ExprKind {
 
   // Higher-order constraints (expanded before reaching Z3)
   ForEachI,
+  ForEachKV,
   Unique,
+
+  /// Whole-array aggregate (expanded in Phase 2 after elements materialize)
+  ArrayAgg,
 };
 
 // ---------- Base class ----------
@@ -147,6 +155,34 @@ class ImpliesExpr : public Expr {
   Expr* body_;
 };
 
+// ---------- IteExpr (if-then-else for array min/max folding; Z3 ite) ----------
+
+class IteExpr : public Expr {
+ public:
+  IteExpr(Expr* cond, Expr* then_expr, Expr* else_expr) :
+      Expr{ExprKind::Ite},
+      cond_{cond},
+      then_{then_expr},
+      else_{else_expr} {
+    assert(cond && then_expr && else_expr);
+  }
+
+  Expr* cond() const {
+    return cond_;
+  }
+  Expr* then_expr() const {
+    return then_;
+  }
+  Expr* else_expr() const {
+    return else_;
+  }
+
+ private:
+  Expr* cond_;
+  Expr* then_;
+  Expr* else_;
+};
+
 // ---------- CallExpr ----------
 
 class CallExpr : public Expr {
@@ -179,6 +215,7 @@ class CallExpr : public Expr {
 // ---------- Array-related forward declarations ----------
 
 class ArrayExprBase;
+class MapExprBase;
 
 class ArraySizeExpr : public Expr {
  public:
@@ -250,6 +287,45 @@ class ForEachIExpr : public Expr {
   std::vector<Expr*> body_;
 };
 
+// ---------- ForEachKVExpr (map entries) ----------
+
+class ForEachKVExpr : public Expr {
+ public:
+  ForEachKVExpr(MapExprBase* map, Expr* sym_idx, Expr* sym_key, Expr* sym_value,
+                std::vector<Expr*> body) :
+      Expr{ExprKind::ForEachKV},
+      map_{map},
+      sym_idx_{sym_idx},
+      sym_key_{sym_key},
+      sym_value_{sym_value},
+      body_{std::move(body)} {
+    assert(map && sym_idx && sym_key && sym_value);
+  }
+
+  MapExprBase* map() const {
+    return map_;
+  }
+  Expr* sym_idx() const {
+    return sym_idx_;
+  }
+  Expr* sym_key() const {
+    return sym_key_;
+  }
+  Expr* sym_value() const {
+    return sym_value_;
+  }
+  const std::vector<Expr*>& body() const {
+    return body_;
+  }
+
+ private:
+  MapExprBase* map_;
+  Expr* sym_idx_;
+  Expr* sym_key_;
+  Expr* sym_value_;
+  std::vector<Expr*> body_;
+};
+
 // ---------- UniqueExpr ----------
 
 class UniqueExpr : public Expr {
@@ -268,6 +344,65 @@ class UniqueExpr : public Expr {
   ArrayExprBase* array_;
 };
 
+// ---------- ArrayAggExpr (SV array.sum / min / max style) ----------
+
+enum class ArrayAggKind { Sum, Product, And, Or, Xor, Min, Max };
+
+class ArrayAggExpr : public Expr {
+ public:
+  ArrayAggExpr(ArrayAggKind agg, ArrayExprBase* array) :
+      Expr{ExprKind::ArrayAgg},
+      agg_{agg},
+      array_{array},
+      sym_idx_{nullptr},
+      sym_elem_{nullptr},
+      value_expr_{nullptr} {
+    assert(array);
+  }
+
+  ArrayAggExpr(ArrayAggKind agg, ArrayExprBase* array, Expr* sym_idx, Expr* sym_elem,
+               Expr* value_expr) :
+      Expr{ExprKind::ArrayAgg},
+      agg_{agg},
+      array_{array},
+      sym_idx_{sym_idx},
+      sym_elem_{sym_elem},
+      value_expr_{value_expr} {
+    assert(array && sym_idx && sym_elem && value_expr);
+  }
+
+  ArrayAggKind agg_kind() const {
+    return agg_;
+  }
+
+  ArrayExprBase* array() const {
+    return array_;
+  }
+
+  bool has_with() const {
+    return value_expr_ != nullptr;
+  }
+
+  Expr* sym_idx() const {
+    return sym_idx_;
+  }
+
+  Expr* sym_elem() const {
+    return sym_elem_;
+  }
+
+  Expr* value_expr() const {
+    return value_expr_;
+  }
+
+ private:
+  ArrayAggKind agg_;
+  ArrayExprBase* array_;
+  Expr* sym_idx_;
+  Expr* sym_elem_;
+  Expr* value_expr_;
+};
+
 // ---------- Operator overloads ----------
 // All return Expr& — caller does NOT own the memory.
 // Memory is managed by ConstraintCollector's arena.
@@ -284,12 +419,16 @@ Arena* get_arena();
 Expr& make_binary(ExprKind kind, Expr& lhs, Expr& rhs);
 Expr& make_unary(ExprKind kind, Expr& operand);
 Expr& make_const(int64_t value);
+Expr& make_ite(Expr& cond, Expr& then_expr, Expr& else_expr);
 Expr& make_call(std::vector<Expr*> args, CallExpr::EvalFn eval_fn);
 }  // namespace detail
 
 // Expr & Expr
 Expr& operator+(Expr& lhs, Expr& rhs);
 Expr& operator-(Expr& lhs, Expr& rhs);
+Expr& operator*(Expr& lhs, Expr& rhs);
+Expr& operator/(Expr& lhs, Expr& rhs);
+Expr& operator%(Expr& lhs, Expr& rhs);
 Expr& operator<(Expr& lhs, Expr& rhs);
 Expr& operator<=(Expr& lhs, Expr& rhs);
 Expr& operator>(Expr& lhs, Expr& rhs);
@@ -304,6 +443,12 @@ Expr& operator+(int64_t lhs, Expr& rhs);
 Expr& operator+(Expr& lhs, int64_t rhs);
 Expr& operator-(int64_t lhs, Expr& rhs);
 Expr& operator-(Expr& lhs, int64_t rhs);
+Expr& operator*(int64_t lhs, Expr& rhs);
+Expr& operator*(Expr& lhs, int64_t rhs);
+Expr& operator/(int64_t lhs, Expr& rhs);
+Expr& operator/(Expr& lhs, int64_t rhs);
+Expr& operator%(int64_t lhs, Expr& rhs);
+Expr& operator%(Expr& lhs, int64_t rhs);
 Expr& operator<(int64_t lhs, Expr& rhs);
 Expr& operator<(Expr& lhs, int64_t rhs);
 Expr& operator<=(int64_t lhs, Expr& rhs);

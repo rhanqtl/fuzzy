@@ -25,10 +25,22 @@ class Evaluator {
       std::size_t sz = arr->actual_size();
       arr->materialize_elements(sz);
     }
+    for (auto* map_expr : cc.all_maps()) {
+      std::size_t sz = map_expr->actual_size();
+      map_expr->materialize_entries(sz);
+      if (!map_expr->check_key_uniqueness()) {
+        return false;
+      }
+    }
 
     // Evaluate every constraint in every block
     Bindings empty;
-    for (auto& block : cc.blocks()) {
+    const auto& blocks = cc.blocks();
+    for (std::size_t block_idx = 0; block_idx < blocks.size(); ++block_idx) {
+      const auto& block = blocks[block_idx];
+      if (block_is_overridden(blocks, block_idx)) {
+        continue;
+      }
       for (auto* c : block.constraints) {
         if (!eval_bool(c, empty))
           return false;
@@ -59,6 +71,18 @@ class Evaluator {
       case ExprKind::Sub: {
         auto& b = as<BinaryExpr>(e);
         return eval(b.lhs(), bindings) - eval(b.rhs(), bindings);
+      }
+      case ExprKind::Mul: {
+        auto& b = as<BinaryExpr>(e);
+        return eval(b.lhs(), bindings) * eval(b.rhs(), bindings);
+      }
+      case ExprKind::Div: {
+        auto& b = as<BinaryExpr>(e);
+        return eval(b.lhs(), bindings) / eval(b.rhs(), bindings);
+      }
+      case ExprKind::Mod: {
+        auto& b = as<BinaryExpr>(e);
+        return eval(b.lhs(), bindings) % eval(b.rhs(), bindings);
       }
       case ExprKind::Abs: {
         auto& u = as<UnaryExpr>(e);
@@ -98,6 +122,81 @@ class Evaluator {
         return bool_to_int(!eval(imp.cond(), bindings) || eval(imp.body(), bindings));
       }
 
+      case ExprKind::Ite: {
+        auto& it = as<IteExpr>(e);
+        return eval(it.cond(), bindings) != 0 ? eval(it.then_expr(), bindings) : eval(it.else_expr(), bindings);
+      }
+
+      case ExprKind::ArrayAgg: {
+        auto& ag = as<ArrayAggExpr>(e);
+        auto* arr = ag.array();
+        const std::size_t n = arr->num_elem_vars();
+        switch (ag.agg_kind()) {
+          case ArrayAggKind::Sum: {
+            int64_t s = 0;
+            for (std::size_t i = 0; i < n; ++i) {
+              s += eval_array_agg_value(ag, i, bindings);
+            }
+            return s;
+          }
+          case ArrayAggKind::Product: {
+            int64_t p = 1;
+            for (std::size_t i = 0; i < n; ++i) {
+              p *= eval_array_agg_value(ag, i, bindings);
+            }
+            return p;
+          }
+          case ArrayAggKind::And: {
+            int64_t v = 1;
+            for (std::size_t i = 0; i < n; ++i) {
+              v = (v != 0) && (eval_array_agg_value(ag, i, bindings) != 0);
+            }
+            return v;
+          }
+          case ArrayAggKind::Or: {
+            int64_t v = 0;
+            for (std::size_t i = 0; i < n; ++i) {
+              v = (v != 0) || (eval_array_agg_value(ag, i, bindings) != 0);
+            }
+            return v;
+          }
+          case ArrayAggKind::Xor: {
+            int64_t v = 0;
+            for (std::size_t i = 0; i < n; ++i) {
+              v = (v != 0) != (eval_array_agg_value(ag, i, bindings) != 0);
+            }
+            return v;
+          }
+          case ArrayAggKind::Min: {
+            if (n == 0) {
+              return 0;
+            }
+            int64_t m = eval_array_agg_value(ag, 0, bindings);
+            for (std::size_t i = 1; i < n; ++i) {
+              int64_t v = eval_array_agg_value(ag, i, bindings);
+              if (v < m) {
+                m = v;
+              }
+            }
+            return m;
+          }
+          case ArrayAggKind::Max: {
+            if (n == 0) {
+              return 0;
+            }
+            int64_t m = eval_array_agg_value(ag, 0, bindings);
+            for (std::size_t i = 1; i < n; ++i) {
+              int64_t v = eval_array_agg_value(ag, i, bindings);
+              if (v > m) {
+                m = v;
+              }
+            }
+            return m;
+          }
+        }
+        return 0;
+      }
+
       case ExprKind::ArraySize: {
         auto& as_expr = static_cast<ArraySizeExpr&>(*e);
         return static_cast<int64_t>(as_expr.array()->actual_size());
@@ -124,7 +223,7 @@ class Evaluator {
       }
 
       default:
-        // ForEachI and Unique should not be evaluated as int — they go through eval_bool
+        // ForEachI / ForEachKV / Unique should not be evaluated as int — they go through eval_bool
         return 0;
     }
   }
@@ -135,6 +234,9 @@ class Evaluator {
     switch (e->kind()) {
       case ExprKind::ForEachI:
         return eval_for_each_i(static_cast<ForEachIExpr&>(*e), bindings);
+
+      case ExprKind::ForEachKV:
+        return eval_for_each_kv(static_cast<ForEachKVExpr&>(*e), bindings);
 
       case ExprKind::Unique:
         return eval_unique(static_cast<UniqueExpr&>(*e), bindings);
@@ -161,6 +263,24 @@ class Evaluator {
     return true;
   }
 
+  bool eval_for_each_kv(ForEachKVExpr& fe, const Bindings& parent_bindings) {
+    auto* map = fe.map();
+    std::size_t n = map->num_entries();
+
+    for (std::size_t i = 0; i < n; i++) {
+      Bindings bindings = parent_bindings;
+      bindings[fe.sym_idx()] = static_cast<int64_t>(i);
+      bindings[fe.sym_key()] = map->key_var(i).read_as_int64();
+      bindings[fe.sym_value()] = map->value_var(i).read_as_int64();
+
+      for (auto* body_expr : fe.body()) {
+        if (!eval_bool(body_expr, bindings))
+          return false;
+      }
+    }
+    return true;
+  }
+
   bool eval_unique(UniqueExpr& uniq, const Bindings& /*bindings*/) {
     auto* arr = uniq.array();
     std::size_t n = arr->num_elem_vars();
@@ -174,6 +294,31 @@ class Evaluator {
   }
 
   // --- Helpers ---
+
+  static bool block_is_overridden(const std::vector<ConstraintCollector::Block>& blocks,
+                                  std::size_t idx) {
+    const auto& name = blocks[idx].name;
+    if (name == "default") {
+      return false;
+    }
+    for (std::size_t i = idx + 1; i < blocks.size(); ++i) {
+      if (blocks[i].name == name) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  int64_t eval_array_agg_value(ArrayAggExpr& ag, std::size_t i, const Bindings& parent_bindings) {
+    auto* arr = ag.array();
+    if (!ag.has_with()) {
+      return arr->elem_var(i).read_as_int64();
+    }
+    Bindings bindings = parent_bindings;
+    bindings[ag.sym_idx()] = static_cast<int64_t>(i);
+    bindings[ag.sym_elem()] = arr->elem_var(i).read_as_int64();
+    return eval(ag.value_expr(), bindings);
+  }
 
   template <typename Cmp>
   bool eval_cmp(Expr* e, const Bindings& bindings) {

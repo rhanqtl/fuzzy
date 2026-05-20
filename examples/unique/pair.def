@@ -1,0 +1,8 @@
+struct Pair {
+    FUZZY_RAND int x;
+    FUZZY_RAND int y;
+
+    FUZZY_CONSTRAINT(c) {
+        unique(x, y);
+    }
+};

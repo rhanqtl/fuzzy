@@ -3,23 +3,23 @@
 #include "fuzzy/Model.h"
 #include "fuzzy/fuzzy.h"
 
-struct Equation {
+struct DiscardSoft {
   int x;
   int y;
   int z;
 
-  FUZZY_META(Equation, x, y, z)
-    BLOCK(c) {
-      constrain(x + y == z);
-      constrain(x > 0);
-      constrain(y > 0);
-      constrain(z > 0);
-    }
+  FUZZY_META(DiscardSoft, void, FUZZY_RAND(x), FUZZY_RAND(y), FUZZY_RAND(z))
+  BLOCK(c) {
+    require(x + y == z);
+    require(x > 0);
+    require(y > 0);
+    require(z > 0);
+  }
   FUZZY_END
 };
 
 TEST_CASE("planner/single-step") {
-  auto result = fuzzy::randomize<Equation>();
+  auto result = fuzzy::randomize<DiscardSoft>();
   REQUIRE(result.has_value());
   const auto x = result->x;
   const auto y = result->y;

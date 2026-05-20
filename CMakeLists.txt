@@ -17,6 +17,7 @@ endif()
 
 option(FUZZY_INCLUDE_TESTS "whether or not to build tests" ON)
 option(FUZZY_INCLUDE_EXAMPLES "whether or not to build examples" ON)
+option(FUZZY_COVERAGE "Instrument the fuzzy static library and tests for coverage (GCC/Clang, not MSVC)" OFF)
 
 # include_guard(GLOBAL)
 # if(NOT TARGET LLVMSupport)
@@ -31,6 +32,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 add_subdirectory(src)
 if(FUZZY_INCLUDE_TESTS)
+    enable_testing()
     add_subdirectory(test)
 endif()
 if(FUZZY_INCLUDE_EXAMPLES)

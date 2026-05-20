@@ -58,6 +58,7 @@ class ArrayExpr : public ArrayExprBase {
   ArrayExpr(std::vector<T>& out, const std::string& name) :
       out_{out},
       name_{name},
+      size_dummy_{out.size()},
       size_var_{size_dummy_, name + ".size"},
       size_expr_{this} {}
 

@@ -1,6 +1,7 @@
 #ifndef FUZZY_AST_TYPE_TRAITS_H
 #define FUZZY_AST_TYPE_TRAITS_H
 
+#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -15,7 +16,7 @@ struct convert_to_rand;
 
 template <typename T>
 struct convert_to_rand<T> {
-  using type = RandVar<T>;
+  using type = VarExpr<T>;
 };
 
 template <>
@@ -29,9 +30,14 @@ struct convert_to_rand<std::unordered_map<K, V, Hash, Eq>> {
   using type = RandMap<K, V, Hash, Eq>;
 };
 
+template <typename K, typename V, typename Compare, typename Alloc>
+struct convert_to_rand<std::map<K, V, Compare, Alloc>> {
+  using type = RandOrderedMap<K, V, Compare, Alloc>;
+};
+
 template <typename T>
 struct convert_to_rand<std::vector<T>> {
-  using type = RandArray<T>;
+  using type = ArrayExpr<T>;
 };
 
 template <typename... Ts>

@@ -1,0 +1,28 @@
+#ifndef FUZZY_EXAMPLES_EQUATION_H
+#define FUZZY_EXAMPLES_EQUATION_H
+
+#include <format>
+#include <iostream>
+
+#include "fuzzy/fuzzy.h"
+
+struct Equation {
+  FUZZY_RAND int x;
+  FUZZY_RAND int y;
+  FUZZY_RAND int z;
+
+  FUZZY_CONSTRAINT(c) {
+    x + y > z;
+    x < 0;
+    y < 0;
+    FUZZY_SOFT z > 0;
+  }
+
+ private:
+  Equation() = default;
+};
+
+inline std::ostream& operator<<(std::ostream& outs, const Equation& eqn) {
+  return outs << std::format("Equation{{.x = {}, .y = {}, .z = {}}}", eqn.x, eqn.y, eqn.z);
+}
+#endif  // FUZZY_EXAMPLES_EQUATION_H

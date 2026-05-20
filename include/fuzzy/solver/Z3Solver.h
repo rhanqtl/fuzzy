@@ -43,6 +43,18 @@ class Z3Solver {
         auto& b = static_cast<BinaryExpr&>(e);
         return translate(*b.lhs()) - translate(*b.rhs());
       }
+      case ExprKind::Mul: {
+        auto& b = static_cast<BinaryExpr&>(e);
+        return translate(*b.lhs()) * translate(*b.rhs());
+      }
+      case ExprKind::Div: {
+        auto& b = static_cast<BinaryExpr&>(e);
+        return translate(*b.lhs()) / translate(*b.rhs());
+      }
+      case ExprKind::Mod: {
+        auto& b = static_cast<BinaryExpr&>(e);
+        return translate(*b.lhs()) % translate(*b.rhs());
+      }
       case ExprKind::Abs: {
         auto& u = static_cast<UnaryExpr&>(e);
         auto val = translate(*u.operand());
@@ -88,6 +100,10 @@ class Z3Solver {
         auto& imp = static_cast<ImpliesExpr&>(e);
         return z3::implies(translate(*imp.cond()), translate(*imp.body()));
       }
+      case ExprKind::Ite: {
+        auto& it = static_cast<IteExpr&>(e);
+        return z3::ite(translate(*it.cond()), translate(*it.then_expr()), translate(*it.else_expr()));
+      }
       case ExprKind::ArraySize: {
         // Translate to the size variable
         auto& as = static_cast<ArraySizeExpr&>(e);
@@ -99,7 +115,8 @@ class Z3Solver {
       }
       default:
         assert(false &&
-               "Unexpected ExprKind in Z3 translation (ForEachI/Unique/Array should be expanded)");
+               "Unexpected ExprKind in Z3 translation (ForEachI/ForEachKV/Unique/ArrayAgg/Array should be "
+               "expanded)");
         return ctx_.bool_val(false);
     }
   }

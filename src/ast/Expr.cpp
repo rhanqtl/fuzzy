@@ -41,6 +41,10 @@ Expr& make_const(int64_t value) {
   return arena_alloc<ConstExpr>(value);
 }
 
+Expr& make_ite(Expr& cond, Expr& then_expr, Expr& else_expr) {
+  return arena_alloc<IteExpr>(&cond, &then_expr, &else_expr);
+}
+
 Expr& make_call(std::vector<Expr*> args, CallExpr::EvalFn eval_fn) {
   return arena_alloc<CallExpr>(std::move(args), std::move(eval_fn));
 }
@@ -55,6 +59,18 @@ Expr& operator+(Expr& lhs, Expr& rhs) {
 
 Expr& operator-(Expr& lhs, Expr& rhs) {
   return detail::make_binary(ExprKind::Sub, lhs, rhs);
+}
+
+Expr& operator*(Expr& lhs, Expr& rhs) {
+  return detail::make_binary(ExprKind::Mul, lhs, rhs);
+}
+
+Expr& operator/(Expr& lhs, Expr& rhs) {
+  return detail::make_binary(ExprKind::Div, lhs, rhs);
+}
+
+Expr& operator%(Expr& lhs, Expr& rhs) {
+  return detail::make_binary(ExprKind::Mod, lhs, rhs);
 }
 
 Expr& operator<(Expr& lhs, Expr& rhs) {
@@ -103,6 +119,27 @@ Expr& operator-(int64_t lhs, Expr& rhs) {
 }
 Expr& operator-(Expr& lhs, int64_t rhs) {
   return detail::make_binary(ExprKind::Sub, lhs, detail::make_const(rhs));
+}
+
+Expr& operator*(int64_t lhs, Expr& rhs) {
+  return detail::make_binary(ExprKind::Mul, detail::make_const(lhs), rhs);
+}
+Expr& operator*(Expr& lhs, int64_t rhs) {
+  return detail::make_binary(ExprKind::Mul, lhs, detail::make_const(rhs));
+}
+
+Expr& operator/(int64_t lhs, Expr& rhs) {
+  return detail::make_binary(ExprKind::Div, detail::make_const(lhs), rhs);
+}
+Expr& operator/(Expr& lhs, int64_t rhs) {
+  return detail::make_binary(ExprKind::Div, lhs, detail::make_const(rhs));
+}
+
+Expr& operator%(int64_t lhs, Expr& rhs) {
+  return detail::make_binary(ExprKind::Mod, detail::make_const(lhs), rhs);
+}
+Expr& operator%(Expr& lhs, int64_t rhs) {
+  return detail::make_binary(ExprKind::Mod, lhs, detail::make_const(rhs));
 }
 
 Expr& operator<(int64_t lhs, Expr& rhs) {

@@ -13,7 +13,7 @@ int add_three(int v) {
 }
 }  // namespace
 
-struct Equation {
+struct DiscardSoft {
   int x;
   std::vector<int> ys;
 
@@ -21,22 +21,22 @@ struct Equation {
     return -x;
   }
 
-  FUZZY_META(Equation, x, ys)
-    auto Neg = FUZZY_DECLARE_FUNC(&Equation::neg);
-    auto PlusOne = FUZZY_DECLARE_FUNC(&plus_one);
-    BLOCK(c) {
-      constrain(x < 0);
-      constrain(ys.size() == FUZZY_CALL(__obj, PlusOne, FUZZY_CALL(__obj, Neg, x)));
-      constrain(ys.size() == invoke(__obj, PlusOne, invoke(__obj, Neg, x)));
-    }
+  FUZZY_META(DiscardSoft, void, FUZZY_RAND(x), FUZZY_RAND(ys))
+  auto Neg = FUZZY_DECLARE_FUNC(&DiscardSoft::neg);
+  auto PlusOne = FUZZY_DECLARE_FUNC(&plus_one);
+  BLOCK(c) {
+    require(x < 0);
+    require(ys.size() == FUZZY_CALL(__obj, PlusOne, FUZZY_CALL(__obj, Neg, x)));
+    require(ys.size() == invoke(__obj, PlusOne, invoke(__obj, Neg, x)));
+  }
   FUZZY_END
 };
 
 TEST_CASE("planner/multi-steps") {
-  auto result = fuzzy::randomize<Equation>();
+  auto result = fuzzy::randomize<DiscardSoft>();
   REQUIRE(result.has_value());
   const auto x = result->x;
-  const auto &ys = result->ys;
+  const auto& ys = result->ys;
   const auto neg_x = result->neg(x);
   const auto expected_size = plus_one(neg_x);
   CHECK(x < 0);
@@ -52,14 +52,14 @@ struct NestedEquation {
     return 2 * v;
   }
 
-  FUZZY_META(NestedEquation, x, ys)
-    auto TimesTwo = FUZZY_DECLARE_FUNC(&NestedEquation::times_two);
-    auto AddThree = FUZZY_DECLARE_FUNC(&add_three);
-    BLOCK(c) {
-      constrain(x >= 0);
-      constrain(x <= 10);
-      constrain(ys.size() == FUZZY_CALL(__obj, AddThree, FUZZY_CALL(__obj, TimesTwo, x)));
-    }
+  FUZZY_META(NestedEquation, void, FUZZY_RAND(x), FUZZY_RAND(ys))
+  auto TimesTwo = FUZZY_DECLARE_FUNC(&NestedEquation::times_two);
+  auto AddThree = FUZZY_DECLARE_FUNC(&add_three);
+  BLOCK(c) {
+    require(x >= 0);
+    require(x <= 10);
+    require(ys.size() == FUZZY_CALL(__obj, AddThree, FUZZY_CALL(__obj, TimesTwo, x)));
+  }
   FUZZY_END
 };
 

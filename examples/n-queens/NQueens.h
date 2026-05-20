@@ -11,21 +11,21 @@ struct NQueens {
   int n;
   std::vector<std::size_t> board;
 
-  FUZZY_META(NQueens, n, board)
+  FUZZY_META(NQueens, void, FUZZY_RAND(n), FUZZY_RAND(board))
     BLOCK(board_size) {
-      constrain(4 <= n && n <= 10);
-      constrain(board.size() == n);
+      require(4 <= n && n <= 10);
+      require(board.size() == n);
     }
     BLOCK(valid_pos) {
       for_each_i(board, [&](auto& i, auto& bi) {
-        constrain(0 <= bi && bi < n);
+        require(0 <= bi && bi < n);
       });
     }
     BLOCK(solution) {
       unique(board);
       for_each_i(board, [&](auto& i, auto& bi) {
         for_each_i(board, [&](auto& j, auto& bj) {
-          constrain(implies(i < j, bi != bj && abs(bi - bj) != j - i));
+          require(implies(i < j, bi != bj && abs(bi - bj) != j - i));
         });
       });
     }

@@ -1,0 +1,13 @@
+struct Equation {
+  FUZZY_RAND int x;
+  FUZZY_RAND int y;
+  FUZZY_RAND int z;
+
+  FUZZY_CONSTRAINT(c) {
+    x + y == z;
+  }
+};
+
+inline std::ostream& operator<<(std::ostream& outs, const Equation& eqn) {
+  return outs << std::format("Equation{{.x = {}, .y = {}, .z = {}}}", eqn.x, eqn.y, eqn.z);
+}
