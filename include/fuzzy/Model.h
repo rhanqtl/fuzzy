@@ -8,9 +8,9 @@
 #include <utility>
 
 #include "fuzzy/ConstraintCollector.h"
-#include "fuzzy/dsl/Context.h"
 #include "fuzzy/Evaluator.h"
 #include "fuzzy/SolveStrategy.h"
+#include "fuzzy/dsl/Context.h"
 
 namespace fuzzy {
 
@@ -142,10 +142,6 @@ class Model<T> {
     return evaluator.validate(cc);
   }
 
-  bool check(const T& obj) {
-    return validate(obj);
-  }
-
   /// Return the initial seed.
   unsigned seed() const {
     return initial_seed_;
@@ -238,7 +234,8 @@ std::optional<T> randomize_with(unsigned seed, WithFn&& with_fn) {
 }
 
 template <HasFuzzyMeta T, typename WithFn>
-std::optional<T> randomize_with(std::initializer_list<std::string_view> var_names, WithFn&& with_fn) {
+std::optional<T> randomize_with(std::initializer_list<std::string_view> var_names,
+                                WithFn&& with_fn) {
   T obj{};
   Model<T> model;
   if (model.randomize(obj, var_names, std::forward<WithFn>(with_fn)))

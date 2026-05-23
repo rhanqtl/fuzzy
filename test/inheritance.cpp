@@ -132,5 +132,5 @@ TEST_CASE("constraint_mode disabled derived override does not re-enable base blo
   d.fuzzy_constraint_mode("shared", 0);
   fuzzy::Model<Derived> model;
   REQUIRE(model.randomize(d));
-  CHECK(model.check(d));
+  CHECK(model.validate(d));
 }

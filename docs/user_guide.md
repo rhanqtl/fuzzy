@@ -151,21 +151,20 @@ bool ok = fuzzy::randomize_scope(x, y).with(
 
 ## 校验当前对象
 
-使用 `validate` 或 `check` 检查当前字段值是否满足模型约束。
+这适合替代 SystemVerilog 中“只检查当前值是否满足约束”的场景。
+
+使用 `validate` 检查当前字段值是否满足模型约束。
 
 ```cpp
 Packet pkt{.kind = 0, .len = 8};
 bool ok = fuzzy::validate(pkt);
-bool also_ok = fuzzy::check(pkt);
 ```
-
-这适合替代 SystemVerilog 中“只检查当前值是否满足约束”的场景。
 
 也可以通过 `Model<T>` 检查已有对象：
 
 ```cpp
 fuzzy::Model<Packet> model{1234u};
-bool ok = model.check(pkt);
+bool ok = model.validate(pkt);
 ```
 
 ## 常用约束写法

@@ -57,9 +57,9 @@ TEST_CASE("Model check is current-value validation without randomizing") {
 
   fuzzy::Model<A> model;
   A a{};
-  CHECK(model.check(a));
+  CHECK(model.validate(a));
   a.x = 2;
-  CHECK_FALSE(model.check(a));
+  CHECK_FALSE(model.validate(a));
   CHECK(a.x == 2);
 }
 
@@ -105,7 +105,7 @@ TEST_CASE("Model randomize variable list pins omitted rand fields") {
   REQUIRE(model.randomize(a, {"x"}));
   CHECK(a.x == 6);
   CHECK(a.y == 4);
-  CHECK(model.check(a));
+  CHECK(model.validate(a));
 }
 
 TEST_CASE("Model randomize empty variable list only checks current state") {

@@ -1,3 +1,4 @@
 fuzzy_add_test(single_step)
 fuzzy_add_test(multi_steps)
+fuzzy_add_test(nested_func_calls)
 fuzzy_add_test(advanced_constraints)
